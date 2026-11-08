@@ -45,6 +45,7 @@ import android.telephony.CellInfoNr
 import android.telephony.CellInfoWcdma
 // QTI_END: 2024-04-01: Telephony: Incremental scan via QCRIL hooks
 import android.telephony.CellInfoGsm
+import android.telephony.ServiceState
 import android.text.BidiFormatter
 import android.text.TextDirectionHeuristics
 import com.android.internal.telephony.OperatorInfo
@@ -218,6 +219,44 @@ object CellInfoUtil {
     }
 
 // QTI_END: 2024-04-01: Telephony: Incremental scan via QCRIL hooks
+     * Convert an [OperatorInfo] from the legacy network query to a [CellInfo].
+     *
+     * Some RILs append the radio technology to the numeric, e.g. "26006+14".
+     */
+    @JvmStatic
+    fun OperatorInfo.toCellInfo(): CellInfo? {
+        val numericWithRat = operatorNumeric ?: return null
+        val numeric = numericWithRat.substringBefore('+')
+        if (!numeric.matches(Regex("^[0-9]{5,6}$"))) return null
+        val mcc = numeric.substring(0, 3)
+        val mnc = numeric.substring(3)
+        val alphaLong = operatorAlphaLong
+        val alphaShort = operatorAlphaShort
+        val ran = numericWithRat.substringAfter('+', "").toIntOrNull()
+            ?.let { ServiceState.rilRadioTechnologyToAccessNetworkType(it) }
+            ?: this.ran
+        val cellInfo = when (ran) {
+            AccessNetworkType.EUTRAN -> CellInfoLte().apply {
+                setCellIdentity(CellIdentityLte(
+                    CellInfo.UNAVAILABLE, CellInfo.UNAVAILABLE, CellInfo.UNAVAILABLE,
+                    CellInfo.UNAVAILABLE, intArrayOf(), CellInfo.UNAVAILABLE,
+                    mcc, mnc, alphaLong, alphaShort, emptyList(), null))
+            }
+            AccessNetworkType.UTRAN -> CellInfoWcdma().apply {
+                setCellIdentity(CellIdentityWcdma(
+                    CellInfo.UNAVAILABLE, CellInfo.UNAVAILABLE, CellInfo.UNAVAILABLE,
+                    CellInfo.UNAVAILABLE, mcc, mnc, alphaLong, alphaShort, emptyList(), null))
+            }
+            else -> CellInfoGsm().apply {
+                setCellIdentity(CellIdentityGsm(
+                    CellInfo.UNAVAILABLE, CellInfo.UNAVAILABLE, CellInfo.UNAVAILABLE,
+                    CellInfo.UNAVAILABLE, mcc, mnc, alphaLong, alphaShort, emptyList()))
+            }
+        }
+        cellInfo.isRegistered = state == OperatorInfo.State.CURRENT
+        return cellInfo
+    }
+
     /**
      * Convert a list of cellInfos to readable string without sensitive info.
      */

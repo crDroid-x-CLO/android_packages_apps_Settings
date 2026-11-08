@@ -26,6 +26,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.UserHandle;
+import android.provider.Settings;
 import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
@@ -49,6 +50,8 @@ import com.android.settingslib.core.instrumentation.Instrumentable;
 import com.android.settingslib.core.lifecycle.Lifecycle;
 import com.android.settingslib.preference.UtilsKt;
 import com.android.settingslib.search.SearchIndexable;
+
+import com.crdroid.settings.preferences.SystemSettingSwitchPreference;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -124,6 +127,12 @@ public class SoundSettings extends DashboardFragment implements OnActivityResult
             }
             return null;
         });
+
+        boolean mediaFocus = Settings.System.getIntForUser(getContext().getContentResolver(),
+            Settings.System.MULTI_AUDIO_FOCUS_ENABLED, 0, UserHandle.USER_CURRENT) != 0;
+        SystemSettingSwitchPreference mediaFocusPref =
+            (SystemSettingSwitchPreference) findPreference("multi_audio_focus_enabled");
+        mediaFocusPref.setChecked(mediaFocus);
     }
 
     @Override
@@ -258,8 +267,10 @@ public class SoundSettings extends DashboardFragment implements OnActivityResult
 
         // === Phone & notification ringtone ===
         controllers.add(new PhoneRingtonePreferenceController(context));
+        controllers.add(new PhoneRingtone2PreferenceController(context));
         controllers.add(new AlarmRingtonePreferenceController(context));
         controllers.add(new NotificationRingtonePreferenceController(context));
+        controllers.add(new VibrationPatternPreferenceController(context));
 
         // === Other Sound Settings ===
         final DialPadTonePreferenceController dialPadTonePreferenceController =

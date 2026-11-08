@@ -50,6 +50,7 @@ import android.content.Intent;
 // QTI_BEGIN: 2024-06-07: Telephony: Fix mobile network setting preferences display issue
 import android.content.IntentFilter;
 // QTI_END: 2024-06-07: Telephony: Fix mobile network setting preferences display issue
+import android.content.res.ColorStateList;
 import android.os.Bundle;
 // QTI_BEGIN: 2020-06-10: Telephony: Update SIM options according to SIM status
 import android.os.RemoteException;
@@ -89,6 +90,7 @@ import androidx.annotation.VisibleForTesting;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.Preference;
+import androidx.preference.SwitchPreferenceCompat;
 
 import com.android.settings.R;
 import com.android.settings.Settings.MobileNetworkActivity;
@@ -180,9 +182,9 @@ public class MobileNetworkSettings extends AbstractMobileNetworkSettings impleme
     private static final String BUTTON_CDMA_SYSTEM_SELECT_KEY = "cdma_system_select_key";
     private static final String BUTTON_CDMA_SUBSCRIPTION_KEY = "cdma_subscription_key";
 
-// QTI_BEGIN: 2024-02-02: Telephony: Update C_IWLAN warning dialog showing criteria
     private static final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
-// QTI_END: 2024-02-02: Telephony: Update C_IWLAN warning dialog showing criteria
+    private static final String KEY_FORCE_LTE_CA = "force_lte_ca";
+    private SwitchPreferenceCompat mForceLteCAPreference;
 
 // QTI_BEGIN: 2023-02-13: Telephony: Show C_IWLAN-related warning dialogs
     private static TelephonyManager mTelephonyManager;
@@ -659,7 +661,7 @@ public class MobileNetworkSettings extends AbstractMobileNetworkSettings impleme
                 new SmsDefaultSubscriptionController(context, KEY_SMS_PREF, getSettingsLifecycle(),
                         this),
                 new MobileDataPreferenceController(context, KEY_MOBILE_DATA_PREF,
-                        getSettingsLifecycle(), this, mSubId),
+                        getSettingsLifecycle(), mSubId, false),
                 new ConvertToEsimPreferenceController(context, KEY_CONVERT_TO_ESIM_PREF,
                         getSettingsLifecycle(), this, mSubId), eid);
     }
@@ -861,6 +863,19 @@ public class MobileNetworkSettings extends AbstractMobileNetworkSettings impleme
                 setTelephonyAvailabilityStatus(getPreferenceControllersAsList());
 
         super.onCreate(icicle);
+
+        mForceLteCAPreference = findPreference(KEY_FORCE_LTE_CA);
+        mForceLteCAPreference.setOnPreferenceChangeListener((preference, newValue) -> {
+            boolean enabled = (Boolean) newValue;
+            int phoneId = SubscriptionManager.getPhoneId(mSubId);
+            Settings.Global.putInt(
+                getContext().getContentResolver(),
+                Settings.Global.FORCE_LTE_CA + "_" + phoneId,
+                enabled ? 1 : 0
+            );
+            return true;
+        });
+
         if (isUiRestricted()) {
             Log.d(LOG_TAG, "Mobile network page is disallowed.");
             finish();
@@ -921,6 +936,9 @@ public class MobileNetworkSettings extends AbstractMobileNetworkSettings impleme
 // QTI_END: 2020-01-26: Telephony: Add support for primary card and subsidy lock
         mMobileNetworkRepository.addRegister(this, this, mSubId);
         mMobileNetworkRepository.updateEntity();
+
+        updateForceLteCAState();
+
         // TODO: remove log after fixing b/182326102
         Log.d(LOG_TAG, "onResume() subId=" + mSubId);
         redrawPreferenceControllers();
@@ -936,6 +954,17 @@ public class MobileNetworkSettings extends AbstractMobileNetworkSettings impleme
     }
 
 // QTI_END: 2020-01-26: Telephony: Add support for primary card and subsidy lock
+    private void updateForceLteCAState() {
+        if (mForceLteCAPreference != null) {
+            int phoneId = SubscriptionManager.getPhoneId(mSubId);
+            boolean enabled = Settings.Global.getInt(
+                    getContext().getContentResolver(),
+                    Settings.Global.FORCE_LTE_CA + "_" + phoneId,
+                    0) == 1;
+            mForceLteCAPreference.setChecked(enabled);
+        }
+    }
+
     private void onSubscriptionDetailChanged() {
         final SubscriptionInfoEntity subscriptionInfoEntity = mSubscriptionInfoEntity;
         if (subscriptionInfoEntity == null) {
@@ -1039,6 +1068,9 @@ public class MobileNetworkSettings extends AbstractMobileNetworkSettings impleme
             final MenuItem item = menu.add(Menu.NONE, R.id.edit_sim_name, Menu.NONE,
                     R.string.mobile_network_sim_label_color_title);
             item.setIcon(com.android.internal.R.drawable.ic_mode_edit);
+            item.setIconTintList(ColorStateList.valueOf(
+                com.android.settingslib.Utils.getColorAttrDefaultColor(getContext(),
+                    android.R.attr.colorControlNormal)));
             item.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
         }
         super.onCreateOptionsMenu(menu, inflater);

@@ -3667,14 +3667,9 @@
 <!-- QTI_END: 2020-04-17: Telephony: Redesign the user controlled PLMN feature-->
     </string-array>
 
-<!-- QTI_BEGIN: 2020-04-17: Telephony: Redesign the user controlled PLMN feature-->
-<!-- QTI_END: 2020-04-17: Telephony: Redesign the user controlled PLMN feature-->
-    <string-array name="wifi_privacy_entries">
-<!-- QTI_BEGIN: 2020-04-17: Telephony: Redesign the user controlled PLMN feature-->
-<!-- QTI_END: 2020-04-17: Telephony: Redesign the user controlled PLMN feature-->
-        <item>Use randomized MAC</item>
-<!-- QTI_BEGIN: 2020-04-17: Telephony: Redesign the user controlled PLMN feature-->
-<!-- QTI_END: 2020-04-17: Telephony: Redesign the user controlled PLMN feature-->
+    <string-array name="wifi_privacy_entries_ext">
+        <item>Use per-connection randomized MAC (default)</item>
+        <item>Use per-network randomized MAC</item>
         <item>Use device MAC</item>
 <!-- QTI_BEGIN: 2020-04-17: Telephony: Redesign the user controlled PLMN feature-->
 <!-- QTI_END: 2020-04-17: Telephony: Redesign the user controlled PLMN feature-->
@@ -3722,11 +3717,8 @@
 <!-- QTI_END: 2020-04-17: Telephony: Redesign the user controlled PLMN feature-->
     </string-array>
 
-<!-- QTI_BEGIN: 2020-04-17: Telephony: Redesign the user controlled PLMN feature-->
-<!-- QTI_END: 2020-04-17: Telephony: Redesign the user controlled PLMN feature-->
-    <string-array name="wifi_privacy_values" translatable="false">
-<!-- QTI_BEGIN: 2020-04-17: Telephony: Redesign the user controlled PLMN feature-->
-<!-- QTI_END: 2020-04-17: Telephony: Redesign the user controlled PLMN feature-->
+    <string-array name="wifi_privacy_values_ext" translatable="false">
+        <item>100</item>
         <item>1</item>
 <!-- QTI_BEGIN: 2020-04-17: Telephony: Redesign the user controlled PLMN feature-->
 <!-- QTI_END: 2020-04-17: Telephony: Redesign the user controlled PLMN feature-->

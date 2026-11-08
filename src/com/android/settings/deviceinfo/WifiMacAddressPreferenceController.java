@@ -24,6 +24,8 @@ import android.util.Log;
 
 import androidx.preference.Preference;
 
+import androidx.preference.Preference;
+
 import com.android.settings.R;
 // QTI_BEGIN: 2019-03-19: Android_UI: Settings: support CT chipset PA requirements
 import com.android.settings.Utils;

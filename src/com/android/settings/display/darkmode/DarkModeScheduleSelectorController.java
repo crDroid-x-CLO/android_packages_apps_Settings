@@ -18,9 +18,8 @@ import android.app.UiModeManager;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.location.LocationManager;
-import android.os.PowerManager;
 
-import androidx.preference.DropDownPreference;
+import androidx.preference.ListPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceScreen;
 
@@ -29,7 +28,7 @@ import com.android.settings.core.BasePreferenceController;
 import com.android.settings.display.TwilightLocationDialog;
 
 /**
- * Controller for the dark ui option dropdown
+ * Controller for the dark ui option list
  */
 // LINT.IfChange
 public class DarkModeScheduleSelectorController extends BasePreferenceController
@@ -37,17 +36,15 @@ public class DarkModeScheduleSelectorController extends BasePreferenceController
     private static final String TAG = DarkModeScheduleSelectorController.class.getSimpleName();
 
     private final UiModeManager mUiModeManager;
-    private final PowerManager mPowerManager;
     private final LocationManager mLocationManager;
     private final BedtimeSettings mBedtimeSettings;
 
-    private DropDownPreference mPreference;
+    private ListPreference mPreference;
     private int mCurrentMode;
 
     public DarkModeScheduleSelectorController(Context context, String key) {
         super(context, key);
         mUiModeManager = context.getSystemService(UiModeManager.class);
-        mPowerManager = context.getSystemService(PowerManager.class);
         mLocationManager = context.getSystemService(LocationManager.class);
         mBedtimeSettings = new BedtimeSettings(context);
     }
@@ -71,7 +68,7 @@ public class DarkModeScheduleSelectorController extends BasePreferenceController
 
     @Override
     public final void updateState(Preference preference) {
-        final boolean batterySaver = mPowerManager.isPowerSaveMode();
+        final boolean batterySaver = DarkThemeBatterySaver.isLocked(mContext);
         mPreference.setEnabled(!batterySaver);
         mCurrentMode = getCurrentMode();
         mPreference.setValueIndex(mCurrentMode);

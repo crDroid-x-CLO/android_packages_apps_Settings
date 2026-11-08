@@ -92,6 +92,7 @@ import com.android.settings.network.ethernet.EthernetSwitchPreferenceController;
 import com.android.settings.network.ethernet.EthernetTracker;
 import com.android.settings.network.ethernet.EthernetTrackerImpl;
 import com.android.settings.network.MobileDataEnabledListener;
+import com.android.settings.network.telephony.MobileDataPreferenceController;
 import com.android.settings.search.BaseSearchIndexProvider;
 import com.android.settings.troubleshooting.TroubleshootingServiceConnection;
 import com.android.settings.troubleshooting.TroubleshootingUtils;
@@ -126,9 +127,12 @@ import com.android.wifitrackerlib.WifiEntry;
 import com.android.wifitrackerlib.WifiEntry.ConnectCallback;
 import com.android.wifitrackerlib.WifiPickerTracker;
 
+import com.google.android.setupcompat.partnerconfig.PartnerConfigHelper;
+import com.google.android.setupcompat.template.FooterBarMixin;
 import com.google.android.setupcompat.template.FooterButtonStyleUtils;
 import com.google.android.setupcompat.util.WizardManagerHelper;
 import com.google.android.setupdesign.GlifPreferenceLayout;
+import com.google.android.setupdesign.template.IconMixin;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -206,6 +210,9 @@ public class NetworkProviderSettings extends RestrictedDashboardFragment
 
     // Enable the Next button when a Wi-Fi network is connected.
     private boolean mEnableNextOnConnection;
+    private FooterBarMixin mFooterBarMixin;
+
+    private boolean mIsInSetupWizard;
 
     private boolean mIsInSetupWizard;
 
@@ -395,6 +402,12 @@ public class NetworkProviderSettings extends RestrictedDashboardFragment
     PreferenceCategory mEthernetPreferenceCategory;
 
     /**
+     * Mobile data toggle
+     */
+    private static final String PREF_KEY_MOBILE_DATA_TOGGLE = "main_toggle_mobile_data";
+    private MobileDataPreferenceController mMobileDataPreferenceController;
+
+    /**
      * Mobile networks list for provider model
      */
     private static final String PREF_KEY_PROVIDER_MOBILE_NETWORK = "provider_model_mobile_network";
@@ -422,10 +435,31 @@ public class NetworkProviderSettings extends RestrictedDashboardFragment
         if (view instanceof GlifPreferenceLayout layout) {
             final Drawable icon = getContext().getDrawable(R.drawable.ic_network_setup);
             final String title = getContext().getString(R.string.provider_internet_settings);
-            AccessibilitySetupWizardUtils.updateGlifPreferenceLayout(getContext(), layout,
-                    title, "" /* description */, icon);
-            FooterButtonStyleUtils.applyPrimaryButtonPartnerResource(activity, getNextButton(),
-                    true);
+            if (PartnerConfigHelper.isGlifExpressiveEnabled(getContext())) {
+                layout.setHeaderText(title);
+                layout.setIcon(icon);
+                final IconMixin iconMixin = layout.getMixin(IconMixin.class);
+                if (iconMixin != null) {
+                    iconMixin.setUpscaleIcon(true);
+                }
+                layout.setDividerInsets(Integer.MAX_VALUE, 0);
+                mFooterBarMixin = layout.getMixin(FooterBarMixin.class);
+                AccessibilitySetupWizardUtils.setPrimaryButton(getContext(), mFooterBarMixin,
+                        R.string.next_label, () -> {
+                            activity.setResult(Activity.RESULT_OK);
+                            activity.finish();
+                        });
+                AccessibilitySetupWizardUtils.setSecondaryButton(getContext(), mFooterBarMixin,
+                        R.string.skip_label, () -> {
+                            activity.setResult(Activity.RESULT_OK);
+                            activity.finish();
+                        });
+            } else {
+                AccessibilitySetupWizardUtils.updateGlifPreferenceLayout(getContext(), layout,
+                        title, "" /* description */, icon);
+                FooterButtonStyleUtils.applyPrimaryButtonPartnerResource(activity, getNextButton(),
+                        true);
+            }
 
             return;
         }
@@ -453,6 +487,7 @@ public class NetworkProviderSettings extends RestrictedDashboardFragment
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
         final Context context = getContext();
+        final Intent intent = this.getIntent();
         if (context != null && !context.getResources().getBoolean(
                 R.bool.config_show_internet_settings)) {
             finish();
@@ -460,6 +495,7 @@ public class NetworkProviderSettings extends RestrictedDashboardFragment
         }
         mAirplaneModeEnabler = new AirplaneModeEnabler(getContext(), this);
         mDataStateListener = new MobileDataEnabledListener(getContext(), this);
+        mIsInSetupWizard = WizardManagerHelper.isAnySetupWizard(intent);
 
         // Animations and preference comparator are disabled. See b/37429702 for context.
         setAnimationAllowed(false);
@@ -568,6 +604,7 @@ public class NetworkProviderSettings extends RestrictedDashboardFragment
         if (mResetInternetPreference != null) {
             mResetInternetPreference.setVisible(false);
         }
+        addMobileDataPreferenceController();
         addNetworkMobileProviderController();
         addWifiSwitchPreferenceController();
         if (com.android.settings.connectivity.Flags.ethernetSettings()) {
@@ -593,6 +630,18 @@ public class NetworkProviderSettings extends RestrictedDashboardFragment
     boolean showAnySubscriptionInfo(Context context) {
         return (context != null) && (Utils.isMobileDataCapable(context)
                 || Utils.isVoiceCapable(context));
+    }
+
+    private void addMobileDataPreferenceController() {
+        if (!showAnySubscriptionInfo(getContext())) {
+            return;
+        }
+        if (mMobileDataPreferenceController == null) {
+            mMobileDataPreferenceController = new MobileDataPreferenceController(
+                    getContext(), PREF_KEY_MOBILE_DATA_TOGGLE, getSettingsLifecycle(),
+                    mSubId, mIsInSetupWizard);
+        }
+        mMobileDataPreferenceController.displayPreference(getPreferenceScreen());
     }
 
     private void addNetworkMobileProviderController() {
@@ -1492,7 +1541,12 @@ public class NetworkProviderSettings extends RestrictedDashboardFragment
      */
     @VisibleForTesting
     void changeNextButtonState(boolean enabled) {
-        if (mEnableNextOnConnection && hasNextButton()) {
+        if (!mEnableNextOnConnection) {
+            return;
+        }
+        if (mFooterBarMixin != null && mFooterBarMixin.getPrimaryButton() != null) {
+            mFooterBarMixin.getPrimaryButton().setEnabled(enabled);
+        } else if (hasNextButton()) {
             getNextButton().setEnabled(enabled);
         }
     }

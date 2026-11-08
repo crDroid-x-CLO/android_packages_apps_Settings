@@ -32,13 +32,13 @@ import com.android.settings.wifi.p2p.WifiP2pSettings;
 import com.android.settings.wifi.savedaccesspoints2.SavedAccessPointsWifiSettings2;
 import com.android.settingslib.widget.SettingsThemeHelper;
 
+import com.google.android.setupcompat.partnerconfig.PartnerConfigHelper;
 import com.google.android.setupdesign.util.ThemeHelper;
 
 public class NetworkSetupActivity extends SettingsActivity implements ButtonBarHandler {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
         setTheme(SetupWizardUtils.getTheme(this, getIntent()));
         if (SettingsThemeHelper.isExpressiveTheme(this)) {
             setTheme(R.style.SettingsPreferenceTheme_SetupWizard_Expressive);
@@ -46,9 +46,11 @@ public class NetworkSetupActivity extends SettingsActivity implements ButtonBarH
             setTheme(R.style.SettingsPreferenceTheme_SetupWizard);
         }
         ThemeHelper.trySetDynamicColor(this);
-        if (ThemeHelper.shouldApplyGlifExpressiveStyle(getApplicationContext())) {
+        if (ThemeHelper.shouldApplyGlifExpressiveStyle(getApplicationContext())
+                && !PartnerConfigHelper.isGlifExpressiveEnabled(this)) {
             ThemeHelper.trySetSuwTheme(this);
         }
+        super.onCreate(savedInstanceState);
         Utils.setupEdgeToEdge(this);
     }
 

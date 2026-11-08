@@ -49,6 +49,7 @@ import com.android.settings.applications.AppDashboardFragment;
 import com.android.settings.applications.AppStorageSettings;
 import com.android.settings.applications.ProcessStatsSummary;
 import com.android.settings.applications.ProcessStatsUi;
+import com.android.settings.applications.RunningServices;
 import com.android.settings.applications.UsageAccessDetails;
 import com.android.settings.applications.appcompat.UserAspectRatioDetails;
 import com.android.settings.applications.appinfo.AlarmsAndRemindersDetails;
@@ -125,6 +126,7 @@ import com.android.settings.gestures.DoubleTapPowerSettings;
 import com.android.settings.gestures.DoubleTapScreenSettings;
 import com.android.settings.gestures.DoubleTwistGestureSettings;
 import com.android.settings.gestures.GestureNavigationSettingsFragment;
+import com.android.settings.gestures.LegacyNavigationSettingsFragment;
 import com.android.settings.gestures.OneHandedSettings;
 import com.android.settings.gestures.PickupGestureSettings;
 import com.android.settings.gestures.PowerMenuSettings;
@@ -151,6 +153,7 @@ import com.android.settings.location.WifiScanningFragment;
 import com.android.settings.network.MobileNetworkListFragment;
 import com.android.settings.network.NetworkDashboardFragment;
 import com.android.settings.network.NetworkProviderSettings;
+import com.android.settings.network.PrivateDnsSettings;
 import com.android.settings.network.apn.ApnEditor;
 import com.android.settings.network.apn.ApnSettings;
 import com.android.settings.network.telephony.CellularSecuritySettingsFragment;
@@ -222,6 +225,9 @@ import com.android.settings.wifi.details.WifiNetworkDetailsFragment;
 import com.android.settings.wifi.p2p.WifiP2pSettings;
 import com.android.settings.wifi.savedaccesspoints2.SavedAccessPointsWifiSettings2;
 import com.android.settings.wifi.tether.WifiTetherSettings;
+
+import com.crdroid.settings.crDroidSettingsLayout;
+import com.crdroid.settings.fragments.ui.SmartPixels;
 
 public class SettingsGateway {
 
@@ -388,6 +394,7 @@ public class SettingsGateway {
             DarkModeSettingsFragment.class.getName(),
             BugReportHandlerPicker.class.getName(),
             GestureNavigationSettingsFragment.class.getName(),
+            LegacyNavigationSettingsFragment.class.getName(),
             ButtonNavigationSettingsFragment.class.getName(),
             InteractAcrossProfilesSettings.class.getName(),
             InteractAcrossProfilesDetails.class.getName(),
@@ -434,6 +441,10 @@ public class SettingsGateway {
             SummarizationPreferenceFragment.class.getName(),
             SafetyCenterFragment.class.getName(),
             SafetyCenterQsFragment.class.getName(),
+            crDroidSettingsLayout.class.getName(),
+            RunningServices.class.getName(),
+            SmartPixels.class.getName(),
+            PrivateDnsSettings.class.getName(),
     };
 
     public static final String[] SETTINGS_FOR_RESTRICTED = {
@@ -481,5 +492,9 @@ public class SettingsGateway {
             Settings.MemtagPageActivity.class.getName(),
             Settings.NavigationModeSettingsActivity.class.getName(),
             Settings.ShadeSettingsActivity.class.getName(),
+            Settings.crDroidSettingsLayoutActivity.class.getName(),
+            Settings.DevRunningServicesActivity.class.getName(),
+            Settings.SmartPixelsActivity.class.getName(),
+            Settings.PrivateDnsSettingsActivity.class.getName(),
     };
 }

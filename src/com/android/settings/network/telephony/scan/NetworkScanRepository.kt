@@ -34,6 +34,10 @@ import android.telephony.AccessNetworkConstants.AccessNetworkType
 import android.telephony.CellIdentity;
 // QTI_END: 2024-06-26: Telephony: Display NR network scan results
 import android.telephony.CellInfo
+import android.telephony.CellInfoGsm
+import android.telephony.CellInfoLte
+import android.telephony.CellInfoWcdma
+import android.telephony.NetworkScan
 import android.telephony.NetworkScanRequest
 import android.telephony.PhoneCapability
 import android.telephony.RadioAccessSpecifier
@@ -41,11 +45,14 @@ import android.telephony.TelephonyManager
 import android.telephony.TelephonyScanManager
 import android.util.Log
 import androidx.lifecycle.LifecycleOwner
+import com.android.internal.telephony.CellNetworkScanResult
 import com.android.settings.R
 import com.android.settings.network.telephony.CellInfoUtil.getNetworkTitle
 // QTI_BEGIN: 2024-05-08: Telephony: CAG and SNPN feature
 import com.android.settings.network.telephony.MobileNetworkUtils
 // QTI_END: 2024-05-08: Telephony: CAG and SNPN feature
+import com.android.settings.network.telephony.CellInfoUtil.getOperatorNumeric
+import com.android.settings.network.telephony.CellInfoUtil.toCellInfo
 import com.android.settings.network.telephony.telephonyManager
 import com.android.settingslib.spa.framework.util.collectLatestWithLifecycle
 import java.util.concurrent.Executors
@@ -121,7 +128,35 @@ class NetworkScanRepository(private val context: Context, subId: Int) {
             }
 
             override fun onError(error: Int) {
+                if (error == NetworkScan.ERROR_UNSUPPORTED) {
+                    Log.d(TAG, "network scan unsupported, falling back to legacy query")
+                    queryAvailableNetworks()
+                    return
+                }
                 state = NetworkScanState.ERROR
+                sendResult()
+                close()
+            }
+
+            private fun queryAvailableNetworks() {
+                val result = telephonyManager.getAvailableNetworks()
+                if (result.status == CellNetworkScanResult.STATUS_SUCCESS) {
+                    // The legacy query lists every PLMN once per RAT,
+                    // keep the registered or best one
+                    cellInfos = result.operators.orEmpty()
+                        .mapNotNull { it.toCellInfo() }
+                        .groupBy { it.cellIdentity.getOperatorNumeric() }
+                        .values
+                        .map { infos ->
+                            infos.maxWith(compareBy<CellInfo>(
+                                { it.isRegistered },
+                                { LEGACY_RAT_ORDER.indexOf(it.javaClass) },
+                            ))
+                        }
+                    state = NetworkScanState.COMPLETE
+                } else {
+                    state = NetworkScanState.ERROR
+                }
                 sendResult()
                 close()
             }
@@ -225,5 +260,10 @@ class NetworkScanRepository(private val context: Context, subId: Int) {
         private const val INCREMENTAL_RESULTS_PERIODICITY_SEC = 3
 
         const val MAX_SEARCH_TIME_SEC = 254
+        private val LEGACY_RAT_ORDER = listOf(
+            CellInfoGsm::class.java,
+            CellInfoWcdma::class.java,
+            CellInfoLte::class.java,
+        )
     }
 }

@@ -496,6 +496,7 @@ public class Settings extends SettingsActivity {
     public static class GestureNavigationSettingsActivity extends SettingsActivity { /* empty */ }
     /** Activity to manage 2-/3-button navigation configuration. */
     public static class ButtonNavigationSettingsActivity extends SettingsActivity { /* empty */ }
+    public static class LegacyNavigationSettingsActivity extends SettingsActivity { /* empty */ }
     public static class InteractAcrossProfilesSettingsActivity extends SettingsActivity {
         /* empty */
     }
@@ -867,4 +868,12 @@ public class Settings extends SettingsActivity {
             }
         }
     }
+
+    public static class crDroidSettingsLayoutActivity extends SettingsActivity {}
+
+    public static class DevRunningServicesActivity extends SettingsActivity { /* empty */ }
+
+    public static class SmartPixelsActivity extends SettingsActivity {}
+
+    public static class PrivateDnsSettingsActivity extends SettingsActivity { /* empty */ }
 }

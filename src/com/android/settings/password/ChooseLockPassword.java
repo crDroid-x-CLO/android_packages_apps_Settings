@@ -252,7 +252,7 @@ public class ChooseLockPassword extends SettingsActivity {
         private static final String KEY_IS_AUTO_CONFIRM_CHECK_MANUALLY_CHANGED =
                 "auto_confirm_option_set_manually";
 
-        private static final int MIN_AUTO_PIN_REQUIREMENT_LENGTH = 6;
+        private static final int MIN_AUTO_PIN_REQUIREMENT_LENGTH = 4;
 
         private LockscreenCredential mCurrentCredential;
         private LockscreenCredential mChosenPassword;
@@ -653,7 +653,6 @@ public class ChooseLockPassword extends SettingsActivity {
             setOnAutoConfirmOptionClickListener();
             if (mAutoPinConfirmOption != null) {
                 mAutoPinConfirmOption.setAccessibilityLiveRegion(ACCESSIBILITY_LIVE_REGION_POLITE);
-                mAutoPinConfirmOption.setVisibility(View.GONE);
                 mAutoPinConfirmOption.setChecked(false);
             }
 
@@ -1125,7 +1124,7 @@ public class ChooseLockPassword extends SettingsActivity {
                 mAutoPinConfirmOption.setVisibility(View.VISIBLE);
                 mAutoConfirmSecurityMessage.setVisibility(View.VISIBLE);
                 if (!mIsAutoPinConfirmOptionSetManually) {
-                    mAutoPinConfirmOption.setChecked(length == MIN_AUTO_PIN_REQUIREMENT_LENGTH);
+                    mAutoPinConfirmOption.setChecked(length >= MIN_AUTO_PIN_REQUIREMENT_LENGTH);
                 }
             } else {
                 mAutoPinConfirmOption.setVisibility(View.GONE);

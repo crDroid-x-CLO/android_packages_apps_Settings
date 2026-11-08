@@ -19,15 +19,43 @@ package com.android.settings.notification;
 import android.content.Context;
 import android.media.RingtoneManager;
 import android.media.audio.Flags;
+import android.telephony.TelephonyManager;
 
+import androidx.preference.Preference;
+import androidx.preference.PreferenceScreen;
+
+import com.android.settings.DefaultRingtonePreference;
 import com.android.settings.Utils;
 
 public class PhoneRingtonePreferenceController extends RingtonePreferenceControllerBase {
 
+    private static final int SLOT_ID = 0;
     private static final String KEY_PHONE_RINGTONE = "phone_ringtone";
 
     public PhoneRingtonePreferenceController(Context context) {
         super(context);
+    }
+
+    @Override
+    public void displayPreference(PreferenceScreen screen) {
+        super.displayPreference(screen);
+
+        final Preference preference = screen.findPreference(KEY_PHONE_RINGTONE);
+        if (preference instanceof DefaultRingtonePreference) {
+            ((DefaultRingtonePreference) preference).setSlotId(SLOT_ID);
+        }
+        if (preference != null && isMultiSimEnabled()) {
+            updateSimSlotPreference(preference, SLOT_ID);
+        }
+    }
+
+    @Override
+    public void updateState(Preference preference) {
+        // Re-evaluated on every resume so SIM / eSIM profile changes are picked up.
+        if (isMultiSimEnabled()) {
+            updateSimSlotPreference(preference, SLOT_ID);
+        }
+        super.updateState(preference);
     }
 
     @Override
@@ -46,6 +74,12 @@ public class PhoneRingtonePreferenceController extends RingtonePreferenceControl
     @Override
     public int getRingtoneType() {
         return RingtoneManager.TYPE_RINGTONE;
+    }
+
+    private boolean isMultiSimEnabled() {
+        final TelephonyManager telephonyManager =
+                (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
+        return telephonyManager != null && telephonyManager.isMultiSimEnabled();
     }
 
     private boolean isRingtoneVibrationEnabled() {

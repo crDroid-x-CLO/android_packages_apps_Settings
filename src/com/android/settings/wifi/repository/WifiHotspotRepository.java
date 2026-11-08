@@ -226,24 +226,10 @@ public class WifiHotspotRepository {
     }
 
     /**
-     * Set to auto refresh data.
-     *
-     * @param enabled whether the auto refresh should be enabled or not.
-     */
-    public void setAutoRefresh(boolean enabled) {
-        if (enabled) {
-            startAutoRefresh();
-        } else {
-            stopAutoRefresh();
-        }
-    }
-
-    /**
      * Gets SecurityType LiveData
      */
     public LiveData<Integer> getSecurityType() {
         if (mSecurityType == null) {
-            startAutoRefresh();
             mSecurityType = new MutableLiveData<>();
             updateSecurityType();
             log("getSecurityType():" + mSecurityType.getValue());
@@ -329,7 +315,6 @@ public class WifiHotspotRepository {
      */
     public LiveData<Integer> getSpeedType() {
         if (mSpeedType == null) {
-            startAutoRefresh();
             mSpeedType = new MutableLiveData<>();
             updateSpeedType();
             log("getSpeedType():" + mSpeedType.getValue());
@@ -541,10 +526,7 @@ public class WifiHotspotRepository {
      * @return {@code true} if Wi-Fi Hotspot 5 GHz Band is available
      */
     public boolean is5gAvailable() {
-        if (!mBand5g.isChannelsReady && is5GHzBandSupported()) {
-            isChannelAvailable(mBand5g);
-        }
-        return mBand5g.isAvailable();
+        return is5GHzBandSupported();
     }
 
     /**
@@ -583,10 +565,7 @@ public class WifiHotspotRepository {
      * @return {@code true} if Wi-Fi Hotspot 6 GHz Band is available
      */
     public boolean is6gAvailable() {
-        if (!mBand6g.isChannelsReady && is6GHzBandSupported()) {
-            isChannelAvailable(mBand6g);
-        }
-        return mBand6g.isAvailable();
+        return is6GHzBandSupported();
     }
 
     /**
@@ -698,44 +677,6 @@ public class WifiHotspotRepository {
         mIsSpeedFeatureAvailable = true;
         log("isSpeedFeatureAvailable():true");
         return true;
-    }
-
-    protected void purgeRefreshData() {
-        mBand5g.isChannelsReady = false;
-        mBand6g.isChannelsReady = false;
-    }
-
-    protected void startAutoRefresh() {
-        if (mActiveCountryCodeChangedCallback != null) {
-            return;
-        }
-        log("startMonitorSoftApConfiguration()");
-        mActiveCountryCodeChangedCallback = new ActiveCountryCodeChangedCallback();
-        mWifiManager.registerActiveCountryCodeChangedCallback(mAppContext.getMainExecutor(),
-                mActiveCountryCodeChangedCallback);
-    }
-
-    protected void stopAutoRefresh() {
-        if (mActiveCountryCodeChangedCallback == null) {
-            return;
-        }
-        log("stopMonitorSoftApConfiguration()");
-        mWifiManager.unregisterActiveCountryCodeChangedCallback(mActiveCountryCodeChangedCallback);
-        mActiveCountryCodeChangedCallback = null;
-    }
-
-    protected class ActiveCountryCodeChangedCallback implements
-            WifiManager.ActiveCountryCodeChangedCallback {
-        @Override
-        public void onActiveCountryCodeChanged(String country) {
-            log("onActiveCountryCodeChanged(), country:" + country);
-            purgeRefreshData();
-            refresh();
-        }
-
-        @Override
-        public void onCountryCodeInactive() {
-        }
     }
 
     /**

@@ -17,15 +17,26 @@
 package com.android.settings.gestures;
 
 import android.app.settings.SettingsEnums;
+import android.content.ComponentName;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.UserHandle;
 import android.provider.Settings;
+import android.text.TextUtils;
 import android.view.Display;
 import android.view.WindowManager;
 
+import androidx.preference.ListPreference;
+import androidx.preference.Preference;
+import androidx.preference.SwitchPreferenceCompat;
+
+import com.android.internal.util.crdroid.Utils;
 import com.android.settings.R;
 import com.android.settings.dashboard.DashboardFragment;
 import com.android.settings.search.BaseSearchIndexProvider;
@@ -34,14 +45,26 @@ import com.android.settingslib.search.SearchIndexable;
 import com.android.settingslib.widget.ButtonPreference;
 import com.android.settingslib.widget.SliderPreference;
 
+import com.crdroid.settings.preferences.SecureSettingSwitchPreference;
+import com.crdroid.settings.utils.DeviceUtils;
+import com.crdroid.settings.utils.SystemUtils;
+
 import java.text.NumberFormat;
+import java.util.List;
 import java.util.Locale;
+
+import lineageos.providers.LineageSettings;
+
+import static com.android.systemui.shared.recents.utilities.Utilities.isLargeScreen;
+
+import static org.lineageos.internal.util.DeviceKeysConstants.*;
 
 /**
  * A fragment to include all the settings related to Gesture Navigation mode.
  */
 @SearchIndexable(forTarget = SearchIndexable.ALL & ~SearchIndexable.ARC)
-public class GestureNavigationSettingsFragment extends DashboardFragment {
+public class GestureNavigationSettingsFragment extends DashboardFragment implements
+        Preference.OnPreferenceChangeListener {
 
     public static final String TAG = "GestureNavigationSettingsFragment";
 
@@ -52,6 +75,23 @@ public class GestureNavigationSettingsFragment extends DashboardFragment {
     private static final String LEFT_EDGE_SEEKBAR_KEY = "gesture_left_back_sensitivity";
     private static final String RIGHT_EDGE_SEEKBAR_KEY = "gesture_right_back_sensitivity";
     private static final String GESTURE_TUTORIAL_KEY = "assistant_gesture_navigation_tutorial";
+    private static final String GESTURE_NAVBAR_LENGTH_KEY = "gesture_navbar_length_preference";
+    private static final String GESTURE_BACK_HEIGHT_KEY = "gesture_back_height";
+    private static final String GESTURE_NAVBAR_HEIGHT_MODE_KEY = "gesture_navbar_height_preference";
+    private static final String KEY_CORNER_LONG_SWIPE = "navigation_bar_corner_long_swipe";
+    private static final String KEY_EDGE_LONG_SWIPE = "navigation_bar_edge_long_swipe";
+    private static final String KEY_ENABLE_TASKBAR = "enable_taskbar";
+    private static final String KEY_GESTURE_HAPTIC = "back_gesture_haptic";
+    private static final String KEY_IME_SPACE = "navbar_ime_space";
+
+    private static final String IME_NAV_BAR_SPACE_OVERLAY =
+            "com.android.systemui.overlay.imenavbarspace";
+    private static final String LAUNCHER3_PACKAGE_NAME = "com.android.launcher3";
+    private static final String NEXUSLAUNCHER_PACKAGE_NAME =
+            "com.google.android.apps.nexuslauncher";
+    private static final String AOSP_IME_PACKAGE_NAME = "com.android.inputmethod.latin";
+    private static final String GBOARD_PACKAGE_NAME = "com.google.android.inputmethod.latin";
+
     final Intent mLaunchTutorialIntent =  new Intent(ACTION_GESTURE_SANDBOX)
             .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             .putExtra("use_tutorial_menu", true);
@@ -61,6 +101,15 @@ public class GestureNavigationSettingsFragment extends DashboardFragment {
 
     private float[] mBackGestureInsetScales;
     private float mDefaultBackGestureInset;
+
+    private ListPreference mCornerLongSwipeAction;
+    private ListPreference mEdgeLongSwipeAction;
+    private SwitchPreferenceCompat mEnableTaskbar;
+    private SecureSettingSwitchPreference mImeSpace;
+
+    private float[] mBackGestureHeightScales = { 0f, 1f, 2f, 3f };
+    private int mCurrentRightWidth;
+    private int mCurrentLefttWidth;
 
     public GestureNavigationSettingsFragment() {
         super();
@@ -78,7 +127,9 @@ public class GestureNavigationSettingsFragment extends DashboardFragment {
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
         super.onCreatePreferences(savedInstanceState, rootKey);
 
-        final Resources res = getActivity().getResources();
+        final Resources res = getResources();
+        final ContentResolver resolver = getContext().getContentResolver();
+
         mDefaultBackGestureInset = res.getDimensionPixelSize(
                 com.android.internal.R.dimen.config_backGestureInset);
         mBackGestureInsetScales = getFloatArray(res.obtainTypedArray(
@@ -86,7 +137,49 @@ public class GestureNavigationSettingsFragment extends DashboardFragment {
 
         initSliderPreference(LEFT_EDGE_SEEKBAR_KEY);
         initSliderPreference(RIGHT_EDGE_SEEKBAR_KEY);
+        initSliderPreference(GESTURE_BACK_HEIGHT_KEY);
         initTutorialButton();
+
+        initGestureNavbarLengthPreference();
+        initGestureNavbarHeightPreference();
+
+        Action cornerLongSwipeAction = Action.fromSettings(resolver,
+                LineageSettings.System.KEY_CORNER_LONG_SWIPE_ACTION,
+                Action.SEARCH);
+        Action edgeLongSwipeAction = Action.fromSettings(resolver,
+                LineageSettings.System.KEY_EDGE_LONG_SWIPE_ACTION,
+                Action.NOTHING);
+
+        // Corner swipe up gesture
+        mCornerLongSwipeAction = initList(KEY_CORNER_LONG_SWIPE, cornerLongSwipeAction);
+
+        // Edge long swipe gesture
+        mEdgeLongSwipeAction = initList(KEY_EDGE_LONG_SWIPE, edgeLongSwipeAction);
+
+        boolean enableTaskbar = LineageSettings.System.getIntForUser(
+                resolver,
+                LineageSettings.System.ENABLE_TASKBAR,
+                isLargeScreen(getContext()) ? 1 : 0,
+                UserHandle.USER_CURRENT
+        ) != 0;
+
+        // Taskbar
+        mEnableTaskbar = (SwitchPreferenceCompat) getPreferenceScreen().findPreference(KEY_ENABLE_TASKBAR);
+        mEnableTaskbar.setChecked(enableTaskbar);
+        mEnableTaskbar.setOnPreferenceChangeListener(this);
+
+        // IME space
+        mImeSpace = getPreferenceScreen().findPreference(KEY_IME_SPACE);
+        if (mImeSpace != null) {
+            mImeSpace.setOnPreferenceChangeListener(this);
+        }
+
+        boolean hapticAvailable = DeviceUtils.hasVibrator(getContext());
+        if (!hapticAvailable) {
+            SwitchPreferenceCompat gestureHaptic =
+                (SwitchPreferenceCompat) getPreferenceScreen().findPreference(KEY_GESTURE_HAPTIC);
+            getPreferenceScreen().removePreference(gestureHaptic);
+        }
     }
 
     @Override
@@ -121,8 +214,100 @@ public class GestureNavigationSettingsFragment extends DashboardFragment {
     }
 
     @Override
+    public boolean onPreferenceChange(Preference preference, Object newValue) {
+        ContentResolver resolver = getActivity().getContentResolver();
+
+        if (preference == mCornerLongSwipeAction) {
+            handleListChange((ListPreference) preference, newValue,
+                    LineageSettings.System.KEY_CORNER_LONG_SWIPE_ACTION);
+            return true;
+        } else if (preference == mEdgeLongSwipeAction) {
+            handleListChange((ListPreference) preference, newValue,
+                    LineageSettings.System.KEY_EDGE_LONG_SWIPE_ACTION);
+            return true;
+        } else if (preference == mEnableTaskbar) {
+            SystemUtils.showSystemUiRestartDialog(getContext());
+            return true;
+        } else if (preference == mImeSpace) {
+            final Context context = getContext();
+            Utils.toggleOverlay(context, IME_NAV_BAR_SPACE_OVERLAY, !(Boolean) newValue,
+                true);
+            restartLauncherIfInstalled(context, LAUNCHER3_PACKAGE_NAME);
+            restartLauncherIfInstalled(context, NEXUSLAUNCHER_PACKAGE_NAME);
+            restartImeIfInstalled(context, AOSP_IME_PACKAGE_NAME);
+            restartImeIfInstalled(context, GBOARD_PACKAGE_NAME);
+            return true;
+        }
+        return false;
+    }
+
+    private static void restartLauncherIfInstalled(Context context, String packageName) {
+        if (Utils.isPackageInstalled(context, packageName, false)) {
+            Utils.restartApp(packageName, context);
+        }
+    }
+
+    private static void restartImeIfInstalled(Context context, String packageName) {
+        if (!Utils.isPackageInstalled(context, packageName, false)) {
+            return;
+        }
+
+        final Context appContext = context.getApplicationContext();
+        final ContentResolver resolver = appContext.getContentResolver();
+        final String currentIme = Settings.Secure.getStringForUser(resolver,
+                Settings.Secure.DEFAULT_INPUT_METHOD, UserHandle.USER_CURRENT);
+        final String currentSubtype = Settings.Secure.getStringForUser(resolver,
+                Settings.Secure.SELECTED_INPUT_METHOD_SUBTYPE, UserHandle.USER_CURRENT);
+        final ComponentName imeComponent = currentIme != null
+                ? ComponentName.unflattenFromString(currentIme) : null;
+        final boolean isCurrentIme = imeComponent != null
+                && packageName.equals(imeComponent.getPackageName());
+
+        Utils.restartApp(packageName, appContext);
+
+        if (!isCurrentIme) {
+            return;
+        }
+
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            final String nowIme = Settings.Secure.getStringForUser(resolver,
+                    Settings.Secure.DEFAULT_INPUT_METHOD, UserHandle.USER_CURRENT);
+            if (!TextUtils.equals(nowIme, currentIme)) {
+                Settings.Secure.putStringForUser(resolver,
+                        Settings.Secure.DEFAULT_INPUT_METHOD, currentIme,
+                        UserHandle.USER_CURRENT);
+                if (currentSubtype != null) {
+                    Settings.Secure.putStringForUser(resolver,
+                            Settings.Secure.SELECTED_INPUT_METHOD_SUBTYPE, currentSubtype,
+                            UserHandle.USER_CURRENT);
+                }
+            }
+        }, 1000);
+    }
+
+    @Override
     public int getMetricsCategory() {
         return SettingsEnums.SETTINGS_GESTURE_NAV_BACK_SENSITIVITY_DLG;
+    }
+
+    private ListPreference initList(String key, Action value) {
+        return initList(key, value.ordinal());
+    }
+
+    private ListPreference initList(String key, int value) {
+        ListPreference list = (ListPreference) getPreferenceScreen().findPreference(key);
+        if (list == null) return null;
+        list.setValue(Integer.toString(value));
+        list.setSummary(list.getEntry());
+        list.setOnPreferenceChangeListener(this);
+        return list;
+    }
+
+    private void handleListChange(ListPreference pref, Object newValue, String setting) {
+        String value = (String) newValue;
+        int index = pref.findIndexOfValue(value);
+        pref.setSummary(pref.getEntries()[index]);
+        LineageSettings.System.putIntForUser(getContentResolver(), setting, Integer.valueOf(value), UserHandle.USER_CURRENT);
     }
 
     private void initTutorialButton() {
@@ -152,11 +337,45 @@ public class GestureNavigationSettingsFragment extends DashboardFragment {
         pref.setHapticFeedbackMode(SeekBarPreference.HAPTIC_FEEDBACK_MODE_ON_TICKS);
         pref.setSliderIncrement(1);
 
-        final String settingsKey = key == LEFT_EDGE_SEEKBAR_KEY
-                ? Settings.Secure.BACK_GESTURE_INSET_SCALE_LEFT
-                : Settings.Secure.BACK_GESTURE_INSET_SCALE_RIGHT;
-        final float initScale = Settings.Secure.getFloat(
-                getContext().getContentResolver(), settingsKey, 1.0f);
+        String settingsKey;
+        float initScale = 0;
+
+        switch(key) {
+            case LEFT_EDGE_SEEKBAR_KEY:
+                settingsKey = Settings.Secure.BACK_GESTURE_INSET_SCALE_LEFT;
+                break;
+            case RIGHT_EDGE_SEEKBAR_KEY:
+                settingsKey = Settings.Secure.BACK_GESTURE_INSET_SCALE_RIGHT;
+                break;
+            case GESTURE_BACK_HEIGHT_KEY:
+                settingsKey = Settings.System.BACK_GESTURE_HEIGHT;
+                break;
+            default:
+                settingsKey = "";
+                break;
+        }
+
+        if (settingsKey != "") {
+            initScale = Settings.Secure.getFloatForUser(
+                getContext().getContentResolver(),
+                settingsKey, 1.0f, UserHandle.USER_CURRENT);
+        }
+
+        // needed if we just change the height
+        float currentWidthScale = Settings.Secure.getFloatForUser(
+            getContext().getContentResolver(),
+            Settings.Secure.BACK_GESTURE_INSET_SCALE_RIGHT, 1.0f, UserHandle.USER_CURRENT);
+        mCurrentRightWidth = (int) (mDefaultBackGestureInset * currentWidthScale);
+        currentWidthScale = Settings.Secure.getFloatForUser(
+            getContext().getContentResolver(),
+            Settings.Secure.BACK_GESTURE_INSET_SCALE_LEFT, 1.0f, UserHandle.USER_CURRENT);
+        mCurrentLefttWidth = (int) (mDefaultBackGestureInset * currentWidthScale);
+
+        if (key == GESTURE_BACK_HEIGHT_KEY) {
+            mBackGestureInsetScales = mBackGestureHeightScales;
+            initScale = Settings.System.getIntForUser(
+                getContext().getContentResolver(), settingsKey, 0, UserHandle.USER_CURRENT);
+        }
 
         // Find the closest value to initScale
         float minDistance = Float.MAX_VALUE;
@@ -171,13 +390,62 @@ public class GestureNavigationSettingsFragment extends DashboardFragment {
         pref.setValue(minDistanceIndex);
         pref.setSliderStateDescription(formatStateDescription(pref, minDistanceIndex));
         pref.setOnPreferenceChangeListener((p, v) -> {
-            final int width = (int) (mDefaultBackGestureInset * mBackGestureInsetScales[(int) v]);
-            mIndicatorView.setIndicatorWidth(width, key == LEFT_EDGE_SEEKBAR_KEY);
+            if (key != GESTURE_BACK_HEIGHT_KEY) {
+                final int width = (int) (mDefaultBackGestureInset * mBackGestureInsetScales[(int) v]);
+                mIndicatorView.setIndicatorWidth(width, key == LEFT_EDGE_SEEKBAR_KEY);
+                if (key == LEFT_EDGE_SEEKBAR_KEY) {
+                    mCurrentLefttWidth = width;
+                } else {
+                    mCurrentRightWidth = width;
+                }
+            } else {
+                final int heightScale = (int) (mBackGestureInsetScales[(int) v]);
+                mIndicatorView.setIndicatorHeightScale(heightScale);
+                // dont use updateViewLayout else it will animate
+                mWindowManager.removeView(mIndicatorView);
+                mWindowManager.addView(mIndicatorView, mIndicatorView.getLayoutParams(
+                        getActivity().getWindow().getAttributes()));
+                // peek the indicators
+                mIndicatorView.setIndicatorWidth(mCurrentRightWidth, false);
+                mIndicatorView.setIndicatorWidth(mCurrentLefttWidth, true);
+            }
             final float scale = mBackGestureInsetScales[(int) v];
-            Settings.Secure.putFloat(getContext().getContentResolver(), settingsKey, scale);
+            if (key != GESTURE_BACK_HEIGHT_KEY) {
+                Settings.Secure.putFloatForUser(getContext().getContentResolver(),
+                    settingsKey, scale, UserHandle.USER_CURRENT);
+            } else {
+                Settings.System.putIntForUser(getContext().getContentResolver(),
+                    settingsKey, (int) scale, UserHandle.USER_CURRENT);
+            }
             pref.setSliderStateDescription(formatStateDescription(pref, (int) v));
             return true;
         });
+    }
+
+    private void initGestureNavbarLengthPreference() {
+        final SliderPreference pref = getPreferenceScreen().findPreference(GESTURE_NAVBAR_LENGTH_KEY);
+        pref.setUpdatesContinuously(true);
+        pref.setHapticFeedbackMode(SeekBarPreference.HAPTIC_FEEDBACK_MODE_ON_TICKS);
+        pref.setSliderIncrement(1);
+        pref.setValue(Settings.System.getIntForUser(
+            getContext().getContentResolver(), Settings.System.GESTURE_NAVBAR_LENGTH_MODE,
+            1, UserHandle.USER_CURRENT));
+        pref.setOnPreferenceChangeListener((p, v) ->
+            Settings.System.putIntForUser(getContext().getContentResolver(),
+            Settings.System.GESTURE_NAVBAR_LENGTH_MODE, (int) v, UserHandle.USER_CURRENT));
+    }
+
+    private void initGestureNavbarHeightPreference() {
+        final SliderPreference pref = getPreferenceScreen().
+            findPreference(GESTURE_NAVBAR_HEIGHT_MODE_KEY);
+        pref.setUpdatesContinuously(true);
+        pref.setHapticFeedbackMode(SeekBarPreference.HAPTIC_FEEDBACK_MODE_ON_TICKS);
+        pref.setSliderIncrement(1);
+        pref.setValue(Settings.System.getIntForUser(getContext().getContentResolver(),
+            Settings.System.GESTURE_NAVBAR_HEIGHT_MODE, 3, UserHandle.USER_CURRENT));
+        pref.setOnPreferenceChangeListener((p, v) ->
+            Settings.System.putIntForUser(getContext().getContentResolver(),
+            Settings.System.GESTURE_NAVBAR_HEIGHT_MODE, (int) v, UserHandle.USER_CURRENT));
     }
 
     private CharSequence formatStateDescription(SliderPreference pref, int progress) {
@@ -209,9 +477,19 @@ public class GestureNavigationSettingsFragment extends DashboardFragment {
             new BaseSearchIndexProvider(R.xml.gesture_navigation_settings) {
 
                 @Override
+                public List<String> getNonIndexableKeys(Context context) {
+                    List<String> keys = super.getNonIndexableKeys(context);
+
+                    boolean hapticAvailable = DeviceUtils.hasVibrator(context);
+                    if (!hapticAvailable) {
+                        keys.add(KEY_GESTURE_HAPTIC);
+                    }
+                    return keys;
+                }
+
+                @Override
                 protected boolean isPageSearchEnabled(Context context) {
-                    return SystemNavigationPreferenceController.isGestureAvailable(context);
+                    return SystemNavigationPreferenceController.isGestureNavigationEnabled(context);
                 }
             };
-
 }

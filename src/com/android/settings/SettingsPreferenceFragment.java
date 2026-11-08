@@ -47,6 +47,8 @@ import androidx.preference.PreferenceScreen;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.android.crdroid.utils.IconTinterUtils;
+
 import com.android.settings.accessibility.AccessibilityFragmentUtils;
 import com.android.settings.core.InstrumentedPreferenceFragment;
 import com.android.settings.core.instrumentation.InstrumentedDialogFragment;
@@ -63,6 +65,8 @@ import com.android.settingslib.preference.PreferenceScreenBindingHelper;
 import com.android.settingslib.preference.PreferenceScreenCreator;
 import com.android.settingslib.search.Indexable;
 import com.android.settingslib.widget.LayoutPreference;
+
+import com.crdroid.settings.preferences.CustomDialogPref;
 
 import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.setupcompat.util.WizardManagerHelper;
@@ -186,6 +190,7 @@ public abstract class SettingsPreferenceFragment extends InstrumentedPreferenceF
     public void addPreferencesFromResource(@XmlRes int preferencesResId) {
         super.addPreferencesFromResource(preferencesResId);
         checkAvailablePrefs(getPreferenceScreen());
+        IconTinterUtils.tintIcons(getPreferenceScreen(), getContext());
     }
 
     @VisibleForTesting
@@ -625,6 +630,9 @@ public abstract class SettingsPreferenceFragment extends InstrumentedPreferenceF
                     .newInstance(preference.getKey());
         } else if (preference instanceof CustomDialogPreferenceCompat) {
             f = CustomDialogPreferenceCompat.CustomPreferenceDialogFragment
+                    .newInstance(preference.getKey());
+        } else if (preference instanceof CustomDialogPref) {
+            f = CustomDialogPref.CustomPreferenceDialogFragment
                     .newInstance(preference.getKey());
         } else if (preference instanceof CustomEditTextPreferenceCompat) {
             f = CustomEditTextPreferenceCompat.CustomPreferenceDialogFragment

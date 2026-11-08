@@ -106,6 +106,7 @@ public class ImeiInfoPreferenceController extends BasePreferenceController {
 
     public ImeiInfoPreferenceController(Context context, String key) {
         super(context, key);
+        mTelephonyManager = mContext.getSystemService(TelephonyManager.class);
     }
 
     public void init(Fragment fragment, SlotSimStatus slotSimStatus) {

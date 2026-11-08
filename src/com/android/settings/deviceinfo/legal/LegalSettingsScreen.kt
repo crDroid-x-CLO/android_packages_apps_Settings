@@ -66,6 +66,11 @@ open class LegalSettingsScreen : PreferenceScreenMixin {
                 R.string.terms_purpose,
                 R.string.lineagelicense_title,
             )
+            +LineageLegalPreference(
+                "crdroid_license",
+                R.string.terms_purpose,
+                R.string.crdroid_license_title,
+            )
             +LegalPreference(
                 "terms",
                 R.string.terms_purpose,

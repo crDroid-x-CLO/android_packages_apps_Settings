@@ -106,7 +106,8 @@
         settings:userRestriction="no_config_vpn"
         settings:useAdminDisabledSummary="true" />
 
-    <com.android.settings.network.PrivateDnsModeDialogPreference
+    <Preference
+        android:fragment="com.android.settings.network.PrivateDnsSettings"
         android:key="private_dns_settings"
         android:title="@string/select_private_dns_configuration_title"
         android:icon="@drawable/ic_settings_private_dns"
