@@ -219,6 +219,7 @@ object CellInfoUtil {
     }
 
 // QTI_END: 2024-04-01: Telephony: Incremental scan via QCRIL hooks
+    /**
      * Convert an [OperatorInfo] from the legacy network query to a [CellInfo].
      *
      * Some RILs append the radio technology to the numeric, e.g. "26006+14".
