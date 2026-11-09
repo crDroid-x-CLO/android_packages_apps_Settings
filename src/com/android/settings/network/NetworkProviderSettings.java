@@ -214,8 +214,6 @@ public class NetworkProviderSettings extends RestrictedDashboardFragment
 
     private boolean mIsInSetupWizard;
 
-    private boolean mIsInSetupWizard;
-
     // This string extra specifies a network to open the connect dialog on, so the user can enter
     // network credentials.  This is used by quick settings for secured networks, among other
     // things.
