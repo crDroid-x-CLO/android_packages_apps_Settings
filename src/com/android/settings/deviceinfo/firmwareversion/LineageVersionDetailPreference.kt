@@ -107,8 +107,8 @@ class LineageVersionDetailPreference :
 
         const val LINEAGE_VERSION_PROPERTY: String = "ro.crdroid.build.version"
 
-        const val PLATLOGO_PACKAGE_NAME: String = "org.lineageos.lineageparts"
-        const val PLATLOGO_ACTIVITY_CLASS: String = PLATLOGO_PACKAGE_NAME + ".logo.PlatLogoActivity"
+        const val PLATLOGO_PACKAGE_NAME: String = "com.crdroid.settings"
+        const val PLATLOGO_ACTIVITY_CLASS: String = PLATLOGO_PACKAGE_NAME + ".fragments.about.DonateActivity"
     }
 }
 // LINT.ThenChange(LineageVersionDetailPreferenceController.java)
