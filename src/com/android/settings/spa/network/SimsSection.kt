@@ -20,7 +20,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.UserManager
 import android.telephony.SubscriptionInfo
-import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
 import android.telephony.euicc.EuiccManager
 import androidx.compose.material.icons.Icons
@@ -43,7 +42,6 @@ import com.android.settings.network.SatelliteWarningDialogActivity
 import com.android.settings.network.SatelliteWarningDialogActivity.Companion.CUSTOM_CONTENT_BUTTON_NAME
 import com.android.settings.network.SatelliteWarningDialogActivity.Companion.CUSTOM_CONTENT_DESCRIPTION
 import com.android.settings.network.SatelliteWarningDialogActivity.Companion.CUSTOM_CONTENT_TITLE
-import com.android.settings.network.SimOnboardingActivity
 import com.android.settings.network.SubscriptionUtil
 import com.android.settings.network.telephony.MobileNetworkUtils
 import com.android.settings.network.telephony.SubscriptionActivationRepository
@@ -108,21 +106,21 @@ private fun SimPreference(subInfo: SubscriptionInfo) {
                 } else {
                     phoneNumber.value ?: ""
                 }
-                override val icon = @Composable { SimIcon(subInfo.isEmbedded) }
-                override val changeable = {
-                    (subInfo.isEmbedded || canDisablePhysicalSubscription) &&
-                        isActivationChangeable &&
-                        !isConvertedPsim &&
-                        isAvailable
-                }
-                override val checked = { checked.value }
-                override val onCheckedChange: (Boolean) -> Unit = { newChecked ->
-                    coroutineScope.launch {
-                        subscriptionActivationRepository.setActive(
-                            subInfo.subscriptionId,
-                            newChecked,
-                        )
-                    }
+            }
+            override val icon = @Composable { SimIcon(subInfo.isEmbedded) }
+            override val changeable = {
+                (subInfo.isEmbedded || canDisablePhysicalSubscription) &&
+                    isActivationChangeable &&
+                    !isConvertedPsim &&
+                    isAvailable
+            }
+            override val checked = { checked.value }
+            override val onCheckedChange: (Boolean) -> Unit = { newChecked ->
+                coroutineScope.launch {
+                    subscriptionActivationRepository.setActive(
+                        subInfo.subscriptionId,
+                        newChecked,
+                    )
                 }
             }
         },
