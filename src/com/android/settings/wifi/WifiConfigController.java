@@ -151,7 +151,7 @@ public class WifiConfigController implements TextWatcher,
         UNDESIRED_CERTIFICATE_MACRANDSAPSECRET
     };
 
-    // Should be the same index value as wifi_privacy_entries in arrays.xml
+    // Should be the same index value as wifi_privacy_entries_ext in arrays.xml
     public static final int PRIVACY_PREF_INDEX_PER_CONNECTION_RANDOMIZED_MAC = 0;
     public static final int PRIVACY_PREF_INDEX_PER_NETWORK_RANDOMIZED_MAC = 1;
     public static final int PRIVACY_PREF_INDEX_DEVICE_MAC = 2;
