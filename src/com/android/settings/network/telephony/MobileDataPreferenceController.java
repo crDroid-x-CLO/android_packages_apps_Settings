@@ -32,8 +32,6 @@ import static android.telephony.ims.feature.ImsFeature.FEATURE_MMTEL;
 import static android.telephony.ims.stub.ImsRegistrationImplBase.REGISTRATION_TECH_CROSS_SIM;
 
 // QTI_END: 2022-10-07: Telephony: Merge "Show warning when user tries to turn off data/roaming/C_IWLAN toggle" into t-keystone-qcom-dev
-import static androidx.lifecycle.Lifecycle.Event.ON_START;
-import static androidx.lifecycle.Lifecycle.Event.ON_STOP;
 
 import android.content.Context;
 // QTI_BEGIN: 2022-10-07: Telephony: Merge "Show warning when user tries to turn off data/roaming/C_IWLAN toggle" into t-keystone-qcom-dev
@@ -60,7 +58,6 @@ import androidx.annotation.VisibleForTesting;
 import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.DefaultLifecycleObserver;
 import androidx.lifecycle.LifecycleOwner;
-import androidx.lifecycle.OnLifecycleEvent;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceScreen;
 import androidx.preference.TwoStatePreference;
